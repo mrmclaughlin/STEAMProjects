@@ -59,12 +59,12 @@ def stepperMove(TheDirection,motorNum):
             GPIO.output(STEP1,GPIO.LOW)
             sleep(speeds) # Dictates how fast stepper motor will run
         if motorNum == 2:
-            GPIO.output(STEP1,GPIO.HIGH)
+            GPIO.output(STEP2,GPIO.HIGH)
             # Allow it to get there.
-            sleep(.00001) # Dictates how fast stepper motor will run
+            sleep(speeds) # Dictates how fast stepper motor will run
             # Set coil winding to low
-            GPIO.output(STEP1,GPIO.LOW)
-            sleep(.00001) # Dictates how fast stepper motor will run        
+            GPIO.output(STEP2,GPIO.LOW)
+            sleep(speeds) # Dictates how fast stepper motor will run        
 def main():
     
     try:
@@ -77,13 +77,10 @@ def main():
             
             if axes[0] == -1:
                 print("Right - CW")              
-                GPIO.output(DIR1,CW)
                 stepperMove(CW,1)
             if axes[0] >= .9:
                 print("Left- CCW")
                 stepperMove(CCW,1)
-                #GPIO.output(DIR1,CCW)
-                #GPIO.output(STEP1,GPIO.HIGH)
             if axes[1] == -1:
                 print("Down - CCW")
                 stepperMove(CCW,2)
