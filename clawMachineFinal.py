@@ -206,6 +206,7 @@ def main():
         sleep(2)    
         while True:
             pygame.event.pump()
+            pygame.event.get()
             axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
             buttons =  [joystick.get_button(i) for i in  range(joystick.get_numbuttons())]
             
