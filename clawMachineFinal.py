@@ -1,5 +1,8 @@
 import pygame
 import RPi.GPIO as GPIO
+import vlc
+#note to fix the install issue
+#pip3 install python-vlc  --break-system-package
 GPIO.setwarnings(False)
 pygame.init()
 pygame.joystick.init()
@@ -225,6 +228,9 @@ def stepperMove(TheDirection,motorNum):
 
 def main():
     try:
+        #p = vlc.MediaPlayer("file:///path/to/track.mp3")
+        p = vlc.MediaPlayer("/media/stiefeladam/068F-EE41/arcade.mp3")
+        
         GPIO.output(clawGrab, True)
         motorClaw_stop()
         joystick = pygame.joystick.Joystick(0)
@@ -254,6 +260,7 @@ def main():
                 timer_active = True
                 timer_start = pygame.time.get_ticks()
                 GPIO.output(gamePower, True)
+                p.play()
             if gamePlaying:
                 if buttons[5] >= .9:
                     timer_active = False
@@ -276,6 +283,7 @@ def main():
                 gamePlaying = False  # Reset gamePlaying flag
                 timer_active = False
                 GPIO.output(gamePower, False)
+                p.stop()
                 #turn off motor
             if timer_active:
                 print("{:.0f}".format((pygame.time.get_ticks() - timer_start)/1000))
