@@ -8,7 +8,7 @@ joystick.init()
 print("joystick initialized",joystick.get_name())
 from time import sleep
 #sensitivityNum number of steps to revolution.. bigger is faster
-stepsForOneRevolution = 200
+stepsForOneRevolution = 1600
 numberOfrevolutions = 20
 sensitivityNum = stepsForOneRevolution*numberOfrevolutions
 #needed for stepper coil to have equal time to wind high and then wind low
@@ -23,9 +23,9 @@ STEP1 = 11
 STEP2 = 13
 '''
 #smaller speeds makes stepper faster .001 is determined as optimal
-speeds = .001
+speeds = .0001
 # Direction pin from controller
-DIR1 = 10
+DIR1 = 18
 DIR2 = 11
 # Step pin from controller
 STEP1 = 8
@@ -57,6 +57,7 @@ GPIO.setup(m1, GPIO.OUT)
 GPIO.setup(m2, GPIO.OUT)
 GPIO.setup(gamePower, GPIO.OUT)
 GPIO.setup(clawGrab, GPIO.OUT)
+
 def motorClaw_forward():
     GPIO.output(m1, GPIO.HIGH)
     GPIO.output(m2, GPIO.LOW)
@@ -70,47 +71,35 @@ def motorClaw_stop():
     GPIO.output(m2, GPIO.LOW)
 def dropClaw():
     motorClaw_forward()
-    sleep(3)	
+    sleep(5)	
     motorClaw_stop()
     sleep(1)
     GPIO.output(clawGrab, True)
     sleep(.1)
     motorClaw_backward()
-    sleep(3)
+    sleep(9)
     motorClaw_stop()
     prizeDrop()
     
 def prizeDrop():
-    #Set CCW or CW for direction to home
+    # CCW or CW for direction to home
     GPIO.output(DIR1,CCW)
     GPIO.output(DIR2,CW)
     homeReachedX = False
     homeReachedY = False
-    # Run for 200 steps. This will change based on how you set you controller
-    for x in range(sensitivityNum):
-        pygame.event.pump()            
-        if bumperTest(CCW,1) <.9:
-            GPIO.output(STEP1,GPIO.HIGH)
-            # Allow it to get there.
-            sleep(speeds) # Dictates how fast stepper motor will run
-            # Set coil winding to low
-            GPIO.output(STEP1,GPIO.LOW)
-            sleep(speeds) # Dictates how fast stepper motor will run
+    while not homeReachedX and not homeReachedY:
+        if  not homeReachedX and bumperTest(CCW,1) <.9:
+            stepperMoveNoJoy(CCW,1)
         else:
             print("Reached Home in X direction")
             homeReachedX = True
             if homeReachedX and homeReachedY:
                 break
-     
-        if bumperTest(CW,2) <.9:
-            GPIO.output(STEP2,GPIO.HIGH)
-            # Allow it to get there.
-            sleep(speeds) # Dictates how fast stepper motor will run
-            # Set coil winding to low
-            GPIO.output(STEP2,GPIO.LOW)
-            sleep(speeds) # Dictates how fast stepper motor will run        
+            
+        if  not homeReachedY and bumperTest(CW,2) <.9:
+            stepperMoveNoJoy(CW,2)
         else:
-            print("Reach Home in Y direction")
+            print("Reached Home in y direction")
             homeReachedY = True
             if homeReachedX and homeReachedY:
                 break
@@ -129,8 +118,8 @@ def bumperTest(theDirection,motorNum):
     #check and set bumper flags here...            
     bumperSafe1 = buttons[1]
     bumperSafe2 = buttons[2]
-    bumperSafe3 = buttons[3]
-    bumperSafe4 = buttons[4]
+    bumperSafe3 = buttons[4]
+    bumperSafe4 = buttons[3]
     if (theDirection == 1) and (motorNum ==1):
         #print("bummper 1 test")
         return bumperSafe1
@@ -146,6 +135,47 @@ def bumperTest(theDirection,motorNum):
 
     return 0
 
+def stepperMoveNoJoy(TheDirection,motorNum):
+    """Change Direction: Changing direction requires time to switch. The
+    time is dictated by the stepper motor and controller. """
+    #sleep(.001)
+    if motorNum == 1:
+        #Esablish the direction you want to go
+        GPIO.output(DIR1,TheDirection)
+    else:
+        GPIO.output(DIR2,TheDirection)
+    # Run for 200 steps. This will change based on how you set you controller
+    for x in range(sensitivityNum):
+        GPIO.output(gamePower, False)
+        sleep(speeds)
+        GPIO.output(gamePower,True)
+        pygame.event.pump()            
+       
+        if motorNum == 1:
+            if bumperTest(TheDirection,motorNum) <.9:
+                GPIO.output(STEP1,GPIO.HIGH)
+                # Allow it to get there.
+                sleep(speeds) # Dictates how fast stepper motor will run
+                # Set coil winding to low
+                GPIO.output(STEP1,GPIO.LOW)
+                sleep(speeds-speeds*delayRatio) # Dictates how fast stepper motor will run minus a reduction in dealy for time to run other code
+                #sleep(speeds)
+            else:
+                print("NOT SAFE")
+                break
+        if motorNum == 2:
+            if bumperTest(TheDirection,motorNum) <.9:
+                GPIO.output(STEP2,GPIO.HIGH)
+                # Allow it to get there.
+                sleep(speeds) # Dictates how fast stepper motor will run
+                # Set coil winding to low
+                GPIO.output(STEP2,GPIO.LOW)
+                sleep(speeds-speeds*delayRatio) # Dictates how fast stepper motor will run minus a reduction in dealy for time to run other code        
+                #sleep(speeds)
+            else:
+                print("NOT SAFE")
+                break
+
 def stepperMove(TheDirection,motorNum):
     """Change Direction: Changing direction requires time to switch. The
     time is dictated by the stepper motor and controller. """
@@ -157,6 +187,9 @@ def stepperMove(TheDirection,motorNum):
         GPIO.output(DIR2,TheDirection)
     # Run for 200 steps. This will change based on how you set you controller
     for x in range(sensitivityNum):
+        GPIO.output(gamePower, False)
+        sleep(speeds)
+        GPIO.output(gamePower,True)
         pygame.event.pump()            
         axis = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
         if all(abs(a) < 0.1 for a in axis):
@@ -173,6 +206,7 @@ def stepperMove(TheDirection,motorNum):
                 # Set coil winding to low
                 GPIO.output(STEP1,GPIO.LOW)
                 sleep(speeds-speeds*delayRatio) # Dictates how fast stepper motor will run minus a reduction in dealy for time to run other code
+                #sleep(speeds)
             else:
                 print("NOT SAFE")
                 break
@@ -184,12 +218,15 @@ def stepperMove(TheDirection,motorNum):
                 # Set coil winding to low
                 GPIO.output(STEP2,GPIO.LOW)
                 sleep(speeds-speeds*delayRatio) # Dictates how fast stepper motor will run minus a reduction in dealy for time to run other code        
+                #sleep(speeds)
             else:
                 print("NOT SAFE")
                 break
 
 def main():
     try:
+        GPIO.output(clawGrab, True)
+        motorClaw_stop()
         joystick = pygame.joystick.Joystick(0)
         joystick.init()
         print("joystick initialized",joystick.get_name())
@@ -205,8 +242,8 @@ def main():
         GPIO.output(clawGrab, False)
         sleep(2)    
         while True:
-            pygame.event.pump()
             pygame.event.get()
+            pygame.event.pump()
             axes = [joystick.get_axis(i) for i in range(joystick.get_numaxes())]
             buttons =  [joystick.get_button(i) for i in  range(joystick.get_numbuttons())]
             
@@ -229,12 +266,12 @@ def main():
                     stepperMove(CCW,1)
                 if axes[1] == -1:
                     print("Down - CCW")
-                    stepperMove(CCW,2)
+                    stepperMove(CW,2)
                 if axes[1] >= .9:
                     print("Up - CW")
-                    stepperMove(CW,2)
+                    stepperMove(CCW,2)
             #print("Button states:", buttons)
-            print("axes values:", axes)
+            #print("axes values:", axes)
             if timer_active and pygame.time.get_ticks() - timer_start >= timerLength:  # 30 seconds = 30000 milliseconds
                 gamePlaying = False  # Reset gamePlaying flag
                 timer_active = False
@@ -249,4 +286,5 @@ def main():
 if __name__=="__main__":
     main()
     
+
 
