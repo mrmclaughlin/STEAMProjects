@@ -1,0 +1,27 @@
+Wiring
+
+Your code uses BOARD (physical) pin numbers, and pins 3, 5, 8, 11, 13, 18, 38, and 40 are already taken. Pin 16 is free, so the sensor signal goes there.
+
+Sensor pin	Pi physical pin
+VCC / +	Pin 1 (3.3V)
+GND / –	Pin 6 (GND)
+DO / OUT / S (or C1 / A on an encoder motor)	Pin 16 (GPIO23)
+AO (if it has one)	leave unconnected
+C2 / B (if it has one)	leave unconnected; the code doesn’t need it
+
+Important: power the sensor from 3.3V, not 5V. The Pi’s input pins are 3.3V only, and a module powered from 5V sends 5V back on its signal wire, which can damage the Pi. Most LM393 slot sensors, hall sensors, and motor encoders work fine on 3.3V. If yours only works on 5V, put a simple voltage divider (two resistors) or a level shifter on the signal wire.
+
+Mounting: the sensor should watch the winch spool or the claw motor’s shaft, not the claw itself. Counting spool turns gives the same cable length every time, no matter how heavy the hook is.
+
+What changed in the code
+The drop works by counting pulses now, not by timing. A background interrupt counts every pulse from the sensor. The claw lowers until it reaches DROP_PULSES, then raises until the count gets back to 0. Pulses from the motor coasting after it stops are still counted in the right direction, so the claw comes back to the same height every time.
+Safety cutoffs. If the pulses stop for 1 second (jammed line, loose wire) or the time limit is reached, the motor shuts off. A bad sensor can’t run the winch forever.
+Calibration settings at the top:
+Set PULSES_PER_REV to the number of slots on your disk, the number of magnets, or the encoder’s pulses per revolution (PPR).
+Run a drop, watch the count = printouts, and adjust DROP_REVOLUTIONS until the claw just reaches the prizes.
+Two small fixes along the way:
+prizeDrop() used while not X and not Y, which ends the loop as soon as either axis reaches home. It now waits for both.
+The drop button now also ends the game, so a second press can’t trigger a second drop.
+Exiting the program now stops the motor and runs GPIO.cleanup().
+
+Troubleshooting: if you get a “Failed to add edge detection” error on a newer Raspberry Pi OS, run sudo apt install python3-rpi-lgpio. It replaces RPi.GPIO with a compatible version, and the code runs unchanged.
